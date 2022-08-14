@@ -1,0 +1,24 @@
+{
+  "name": "studyelectron",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node_modules/.bin/electron ./src"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nekotetsu/studyElectron.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/nekotetsu/studyElectron/issues"
+  },
+  "homepage": "https://github.com/nekotetsu/studyElectron#readme",
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "^20.0.2",
+    "electron-packager": "^15.5.1"
+  }
+}
