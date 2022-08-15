@@ -8,7 +8,19 @@
 ## Electronとは？
 javascript等のウェブ技術でデスクトップアプリケーションを作成できるフレームワーク。
 
-## 作業手順
+## Electronを使った文字を表示するだけのアプリ作成
+0. モジュール構成図
+```puml
+@startuml {moduleStructure.png}
+
+'メイン
+rectangle "<b>main.js\nメインプロセス" as main
+rectangle "<b>index.html\nレンダラープロセスで使うHTML" as html
+
+main -> html : 呼び出し
+
+@enduml
+```
 1. node.jsのインストール（未インストールの場合のみ）
 2. Projectの作成
    今回は`sample_electron`というディレクトリを作成。
