@@ -7,6 +7,9 @@
 
 ## Electronとは？
 javascript等のウェブ技術でデスクトップアプリケーションを作成できるフレームワーク。
+Electronでは2種類のプロセスが存在するマルチプロセスアーキテクチャを継承している。各プロセスは下記の通り。
+1. <B>メインプロセス</B> : アプリケーションのエントリーポイントであり、アプリケーションウィンドウの作成、管理を行うプロセス。1つのアプリに1つだけ存在する。Node.js上で動作し、Node.jsの各種モジュールを使用可能。
+2. <B>レンダラープロセス</B> : メインプロセスが作成したウィンドウのレンダリングを行うプロセス。複数存在することが可能。ブラウザ（Chromium）上で動作するため、基本的にWeb上で実装できることしかできない。
 
 ## Electronを使った文字を表示するだけのアプリ作成
 0. モジュール構成図
@@ -131,12 +134,15 @@ main -> html : 呼び出し
    ```
    コマンド実行後、`FirstApp-win32-x64`というフォルダが作成され、この中にexeファイルおよび関連ファイルが作成されます。配布時はこのフォルダごとzipで配布すればOK。（electron-builderを使用するとインストーラーでの配布が可能なようです。）
 
+
 ## 参考ページ
+[Electron公式]
 [最新版で学ぶElectron入門]
 [Electronデスクトップアプリ開発入門（1）]
 [npxコマンドとは？ 何ができるのか？]
 [electron-builderについて]
 
+[Electron公式]:https://www.electronjs.org/ja/docs/latest/
 [最新版で学ぶElectron入門]:https://ics.media/entry/7298/
 [Electronデスクトップアプリ開発入門（1）]:https://www.buildinsider.net/enterprise/electron/01
 [npxコマンドとは？ 何ができるのか？]:https://zenn.dev/ryuu/articles/what-npxcommand
