@@ -18,7 +18,11 @@ const createWindow = () => {
 }
 
 // アプリケーションの初期化が完了した時の処理
-app.on("ready", () => {
+/*app.on("ready", () => {
+  createWindow();
+});*/
+// Promiseを使う場合はwhenReady()
+app.whenReady().then(() => {
   createWindow();
 });
 
