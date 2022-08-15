@@ -12,7 +12,7 @@ Electronでは2種類のプロセスが存在するマルチプロセスアー�
 2. <B>レンダラープロセス</B> : メインプロセスが作成したウィンドウのレンダリングを行うプロセス。複数存在することが可能。ブラウザ（Chromium）上で動作するため、基本的にWeb上で実装できることしかできない。
 
 ## Electronを使った文字を表示するだけのアプリ作成
-0. モジュール構成図
+### モジュール構成図
 ```puml
 @startuml {moduleStructure.png}
 
@@ -24,6 +24,7 @@ main -> html : 呼び出し
 
 @enduml
 ```
+### 作成手順
 1. node.jsのインストール（未インストールの場合のみ）
 2. Projectの作成
    今回は`sample_electron`というディレクトリを作成。
@@ -54,7 +55,7 @@ main -> html : 呼び出し
    ```
    ▼`main.js`
    ```js main.js
-      // アプリケーション作成用のモジュールを読み込み
+    // アプリケーション作成用のモジュールを読み込み
     const { app, BrowserWindow } = require("electron");
 
     // メインウィンドウ
@@ -88,7 +89,7 @@ main -> html : 呼び出し
    ```
    ▼`index.html`
    ```html index.html
-   <!DOCTYPE html>
+    <!DOCTYPE html>
     <html lang="ja">
 
     <head>
