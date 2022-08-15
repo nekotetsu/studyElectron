@@ -1,12 +1,25 @@
 // アプリケーション作成用のモジュールを読み込み
-const { app, BrowserWindow } = require("electron");
+const { app, BrowserWindow, ipcMain } = require("electron");
+const path = require("path");
+
+//----------------------------------
+// ウィンドウ表示
+//----------------------------------
 
 // メインウィンドウ
 let mainWindow = null;
 
 const createWindow = () => {
   // メインウィンドウを作成
-  mainWindow = new BrowserWindow({ width: 800, height: 600 });
+  mainWindow = new BrowserWindow({
+    width: 800,
+    height: 600,
+    webPreferences: {
+      nodeIntegration: false,   // v12からデフォルト値
+      contextIsolation: true,   // v12からデフォルト値。preloadとElectron内部ロジックがwebContentsでロードしたウェイブサイトに対して別のコンテキストで実行される
+      preload: path.join(__dirname, "preload.js")   // ContextBridgeを使うためのpreloadファイルの指定
+    }
+  });
   // メインウィンドウに表示するHTMLを指定
   mainWindow.loadFile("index.html");
   // Chromiumのディベロッパーツールの起動
@@ -32,4 +45,12 @@ app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
     app.quit();
   }
+});
+
+//----------------------------------
+// IPC通信
+//----------------------------------
+// +1して返す
+ipcMain.handle("plus1", (event, data) => {
+  return (parseInt(data) + 1);
 });

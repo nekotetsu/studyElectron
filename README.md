@@ -135,6 +135,138 @@ main -> html : 呼び出し
    ```
    コマンド実行後、`FirstApp-win32-x64`というフォルダが作成され、この中にexeファイルおよび関連ファイルが作成されます。配布時はこのフォルダごとzipで配布すればOK。（electron-builderを使用するとインストーラーでの配布が可能なようです。）
 
+## IPC通信（プロセス間通信）
+### IPC通信とは
+IPC通信とは、Electronにおけるメインプロセスとレンダラープロセス間の通信のこと。レンダラープロセス間では直接通信はできず、レンダラープロセス間でデータのやり取りをしたい場合もメインプロセスを挟む必要がある。
+
+### IPC通信の課題点
+IPC通信はもともとはメインプロセスとレンダラープロセスの間で直接やり取りをしていました。ただ、この状況だと`remote`モジュールを使用することでレンダラープロセス内であたかもメインプロセス内のオブジェクトやメソッドを操作することが可能でした。これは最悪、レンダラープロセス側（Webとつながっている側）からローカルのファイル操作等も可能になる可能性があります。
+この課題に対応するため、最新ではcontextBridgeを使う方法が取られています。contextBridgeは簡単に言うと、メインプロセスの外部にAPIを用意しておき、レンダラープロセスからはこのAPIをたたかせることで、直接メインプロセス側のメソッド等を使わせないという方法です。
+```puml
+@startuml {contextBridge.png}
+
+'メイン
+rectangle "<b>main.js\nメインプロセス" as main
+rectangle "<b>preload.js\ncontextBridge" as contextBridge
+rectangle "<b>index.html\nレンダラープロセスで使うHTML" as html
+
+main <- contextBridge : 呼び出し
+contextBridge <- html : 呼び出し
+main -> contextBridge : 応答
+contextBridge -> html : 応答
+
+@enduml
+```
+### IPC通信のテスト
+今回、IPC通信をテストするため、「テキストボックスに数字を入力してボタンを押すと、メインプロセス側でその数値に+1をした数字を返答、返答された数字を表示する」というアプリを作成しました。（機能的にはjavascriptだけで実装できるのであまり意味はありませんが）
+
+今回作成したプログラムは下記の通り。（変更点のない`package.json`等は記載なし）
+▼`main.js`
+`preload`を使用するため、`createWindow`内で`webPreferences`のオプションを追加しています。また、APIがたたかれた際のIPC通信に関する処理を追加しています。
+```js main.js
+// アプリケーション作成用のモジュールを読み込み
+const { app, BrowserWindow, ipcMain } = require("electron");
+const path = require("path");
+
+//----------------------------------
+// ウィンドウ表示
+//----------------------------------
+
+// メインウィンドウ
+let mainWindow = null;
+
+const createWindow = () => {
+  // メインウィンドウを作成
+  mainWindow = new BrowserWindow({
+    width: 800,
+    height: 600,
+    webPreferences: {
+      nodeIntegration: false,   // v12からデフォルト値
+      contextIsolation: true,   // v12からデフォルト値。preloadとElectron内部ロジックがwebContentsでロードしたウェイブサイトに対して別のコンテキストで実行される
+      preload: path.join(__dirname, "preload.js")   // ContextBridgeを使うためのpreloadファイルの指定
+    }
+  });
+  // メインウィンドウに表示するHTMLを指定
+  mainWindow.loadFile("index.html");
+  // Chromiumのディベロッパーツールの起動
+  mainWindow.webContents.openDevTools();
+  // メインウィンドウが閉じられた時の処理
+  mainWindow.on("close", () => {
+    mainWindow = null;
+  });
+}
+
+// アプリケーションの初期化が完了した時の処理
+/*app.on("ready", () => {
+  createWindow();
+});*/
+// Promiseを使う場合はwhenReady()
+app.whenReady().then(() => {
+  createWindow();
+});
+
+// 全てのウィンドウが閉じられた時
+app.on("window-all-closed", () => {
+  // macos以外はアプリケーションを終了させる
+  if (process.platform !== "darwin") {
+    app.quit();
+  }
+});
+
+//----------------------------------
+// IPC通信
+//----------------------------------
+// +1して返す
+ipcMain.handle("plus1", (event, data) => {
+  return (parseInt(data) + 1);
+});
+```
+
+▼`preload.js`
+今回はAPIが1つだけなのでとてもシンプルです。
+```js preload.js
+const { contextBridge, ipcRenderer } = require('electron')
+
+contextBridge.exposeInMainWorld('myapi', {
+  plus1: async (data) => await ipcRenderer.invoke('plus1', data)
+}
+```
+
+▼`index.html`
+テキストボックスとボタンを追加し、ボタンが押されるとAPIをたたく処理を入れています。
+```html index.html
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Electron</title>
+  <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
+</head>
+
+<body>
+  <H1>Test Electron!!</H1>
+  数字を入力してボタンを押してください。
+  <form>
+    <input type="text" id="input" plaseholder="0">
+    <button type="button" id="convBtn">+1</button>
+  </form>
+</body>
+
+<script>
+  let btn = document.getElementById("convBtn");
+  btn.addEventListener('click', async () => {
+    const input = document.getElementById("input");
+    const buff = await window.myapi.plus1(input.value);
+    input.value = buff;
+  });
+
+</script>
+
+</html>
+```
 
 ## 参考ページ
 [Electron公式]
@@ -142,9 +274,11 @@ main -> html : 呼び出し
 [Electronデスクトップアプリ開発入門（1）]
 [npxコマンドとは？ 何ができるのか？]
 [electron-builderについて]
+[Electron（v.15.0.0 現在）の IPC 通信入門 - よりセキュアな方法への変遷]
 
 [Electron公式]:https://www.electronjs.org/ja/docs/latest/
 [最新版で学ぶElectron入門]:https://ics.media/entry/7298/
 [Electronデスクトップアプリ開発入門（1）]:https://www.buildinsider.net/enterprise/electron/01
 [npxコマンドとは？ 何ができるのか？]:https://zenn.dev/ryuu/articles/what-npxcommand
 [electron-builderについて]:https://qiita.com/saki-engineering/items/203892838e15b3dbd300
+[Electron（v.15.0.0 現在）の IPC 通信入門 - よりセキュアな方法への変遷]:https://qiita.com/hibara/items/c59fb6924610fc22a9db

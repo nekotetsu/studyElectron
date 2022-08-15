@@ -6,10 +6,26 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Test Electron</title>
+  <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
 </head>
 
 <body>
   <H1>Test Electron!!</H1>
+  数字を入力してボタンを押してください。
+  <form>
+    <input type="text" id="input" plaseholder="0">
+    <button type="button" id="convBtn">+1</button>
+  </form>
 </body>
+
+<script>
+  let btn = document.getElementById("convBtn");
+  btn.addEventListener('click', async () => {
+    const input = document.getElementById("input");
+    const buff = await window.myapi.plus1(input.value);
+    input.value = buff;
+  });
+
+</script>
 
 </html>
