@@ -7,6 +7,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Test Electron</title>
   <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
+  <link rel="stylesheet" href="style.css">
+  <script type="text/javascript" src="bluejelly.js"></script>
 </head>
 
 <body>
@@ -16,16 +18,55 @@
     <input type="text" id="input" plaseholder="0">
     <button type="button" id="convBtn">+1</button>
   </form>
+
+  <!--BLE scan-->
+  <button id="scan">Scan</button>
+  <div id="device_name"> </div>
+
+
+
+  <script>
+    let btn = document.getElementById("convBtn");
+    btn.addEventListener('click', async () => {
+      const input = document.getElementById("input");
+      const buff = await window.myapi.plus1(input.value);
+      input.value = buff;
+    });
+
+    // Web Blooth API
+    /*
+    let scanBtn = document.getElementById("scan");
+    scanBtn.addEventListener("click", async () => {
+      const device = await navigator.bluetooth.requestDevice({
+        acceptAllDevices: true
+      });
+      let currentHTML = document.getElementById('device_name').innerHTML;
+      document.getElementById('device_name').innerHTML = currentHTML + "<BR>" + `DeviceName: ${device.name}` || `ID: ${device.id}`;
+    });*/
+
+    //--------------------------------------------------
+    //bluejelly
+    //--------------------------------------------------
+    //BlueJellyのインスタンス生成
+    const ble = new BlueJelly();
+
+    //ロード時の処理
+    window.onload = function () {
+      //UUIDの設定
+      ble.setUUID("UUID1", "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000");
+    };
+
+    //Scan後の処理
+    ble.onScan = function (deviceName) {
+      document.getElementById('device_name').innerHTML = deviceName;
+    };
+
+    //ボタンが押された時のイベント登録
+    document.getElementById('scan').addEventListener('click', function () {
+      ble.scan('UUID1');
+    });
+  </script>
+
 </body>
-
-<script>
-  let btn = document.getElementById("convBtn");
-  btn.addEventListener('click', async () => {
-    const input = document.getElementById("input");
-    const buff = await window.myapi.plus1(input.value);
-    input.value = buff;
-  });
-
-</script>
 
 </html>

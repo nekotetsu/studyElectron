@@ -1,6 +1,8 @@
 // アプリケーション作成用のモジュールを読み込み
 const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("path");
+const noble = require('@abandonware/noble');
+//const noble = require("noble");
 
 //----------------------------------
 // ウィンドウ表示
@@ -19,6 +21,16 @@ const createWindow = () => {
       contextIsolation: true,   // v12からデフォルト値。preloadとElectron内部ロジックがwebContentsでロードしたウェイブサイトに対して別のコンテキストで実行される
       preload: path.join(__dirname, "preload.js")   // ContextBridgeを使うためのpreloadファイルの指定
     }
+  });
+  // BLE用
+  mainWindow.webContents.on('select-bluetooth-device', (event, deviceList, callback) => {
+    event.preventDefault();
+    const result = deviceList.find((device) => device.deviceName === 'SlipperX3');
+    if (!result) {
+      callback('');
+    } else {
+      callback(result.deviceId);
+    };
   });
   // メインウィンドウに表示するHTMLを指定
   mainWindow.loadFile("index.html");
