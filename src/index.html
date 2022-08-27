@@ -23,6 +23,14 @@
   <button id="scan">Scan</button>
   <div id="device_name"> </div>
 
+  <!--BLE notify-->
+  <BR>
+  <button id="startNotifications" class="button">Start Notify</button>
+  <button id="stopNotifications" class="button">Stop Notify</button>
+
+  <div id="data_text"> </div>
+  <div id="uuid_name"> </div>
+  <div id="status"> </div>
 
 
   <script>
@@ -47,15 +55,25 @@
     //--------------------------------------------------
     //bluejelly
     //--------------------------------------------------
+    const DEVICE_NAME = "SlipperX3";
+    const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+    const CHAR_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+
+    ///////////////////
+    // 初期設定
+    ///////////////////
     //BlueJellyのインスタンス生成
     const ble = new BlueJelly();
 
     //ロード時の処理
     window.onload = function () {
       //UUIDの設定
-      ble.setUUID("UUID1", "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000");
+      ble.setUUID(DEVICE_NAME, SERVICE_UUID, CHAR_UUID);
     };
 
+    ///////////////////
+    // Scan
+    ///////////////////
     //Scan後の処理
     ble.onScan = function (deviceName) {
       document.getElementById('device_name').innerHTML = deviceName;
@@ -63,8 +81,50 @@
 
     //ボタンが押された時のイベント登録
     document.getElementById('scan').addEventListener('click', function () {
-      ble.scan('UUID1');
+      ble.scan(DEVICE_NAME);
     });
+
+    ///////////////////
+    // Notify
+    ///////////////////
+    // NotifyのREAD。Notify開始後、有効になる
+    ble.onRead = function (data, uuid) {
+      //フォーマットに従って値を取得
+      let value = data.getInt8(0);//8bitの場合のフォーマット
+      let str = String.fromCharCode(value);//ASCIIコードを文字列に変換
+
+      //コンソールに値を表示
+      console.log("value: " + value);
+      console.log("str: " + str);
+
+      //HTMLにデータを表示
+      document.getElementById('data_text').innerHTML = value + str;
+      document.getElementById('uuid_name').innerHTML = uuid;
+      document.getElementById('status').innerHTML = "read data"
+    }
+
+    // Notifyが開始、終了したことの確認用
+    ble.onStartNotify = function (uuid) {
+      console.log('> Start Notify!');
+
+      document.getElementById('uuid_name').innerHTML = uuid;
+      document.getElementById('status').innerHTML = "started Notify";
+    }
+    ble.onStopNotify = function (uuid) {
+      console.log('> Stop Notify!');
+
+      document.getElementById('uuid_name').innerHTML = uuid;
+      document.getElementById('status').innerHTML = "stopped Notify";
+    }
+
+    //ボタンが押された時のイベント登録
+    document.getElementById('startNotifications').addEventListener('click', function () {
+      ble.startNotify(DEVICE_NAME);
+    });
+    document.getElementById('stopNotifications').addEventListener('click', function () {
+      ble.stopNotify(DEVICE_NAME);
+    });
+
   </script>
 
 </body>
