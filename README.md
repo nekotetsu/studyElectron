@@ -268,13 +268,108 @@ contextBridge.exposeInMainWorld('myapi', {
 </html>
 ```
 
+## BLE接続
+### 今回のBLE接続構成
+ElectronでBLE接続する方法としては、
+- メインプロセス側のNode.js上でBLE通信を行う方法
+- レンダラープロセス側でWeb Bluetooth APIを用いてBLE通信を行う方法
+の大きく分けて2つが挙げられます。
+Node.js上でBLE通信を行う場合は`noble`というライブラリを使用するのが一般的なようですが、2018年ごろから更新が止まっているようなので、今回は現在も開発が続いている＆今後活用が広がりそうなWeb Bluetooth APIを用いてBLE通信を行います。
+また今回はWeb Bluetooth APIを使いやすくするため、`bluejelly.js`というラッパーを使用させていただいております。
+構成としては以下のような感じ。
+```puml
+@startuml {ble.png}
+
+'メイン
+rectangle "<b>main.js\nメインプロセス" as main
+rectangle "<b>preload.js\ncontextBridge" as contextBridge
+rectangle "<b>index.html\nレンダラープロセスで使うHTML" as html
+rectangle "<b>bluejelly.js\nWeb Bluetooth APIのラッパー" as bluejelly
+rectangle "<b>style.css\nWeb CSSファイル" as style
+rectangle "<b>BLE機器\n" as bleDev
+
+main <- contextBridge : 呼び出し
+contextBridge <- html : 呼び出し
+main -> contextBridge : 応答
+contextBridge -> html : 応答
+html -- style
+html -- bluejelly
+bluejelly -- bleDev
+
+@enduml
+```
+
+### ElectronでのWeb Bluetooth APIの利用注意点
+Electronの公式HP[Electronでのデバイスアクセス]によると、ElectronはWebブラウザで扱えるAPIはほとんど同じように扱えるものの、デバイスアクセスを要求された時の挙動が異なるとのこと。Web Bluetooth APIを使用する場合は、開発者がメインプロセス側でデバイスリクエストに関連するwebContentsの`select-bluetooth-device`イベントをハンドリングする必要があるそうです。具体的には下記の今回のコードを参照。
+
+▼`main.js`
+`createWindow()`の中で下記を追記。
+`select-bluetooth-device`というイベントが発生した場合に、取得したデバイスのうち`SlipperX3`に関するデバイス情報を返します。
+
+```js main.js
+// BLE用
+  mainWindow.webContents.on('select-bluetooth-device', (event, deviceList, callback) => {
+    event.preventDefault();
+    const result = deviceList.find((device) => device.deviceName === 'SlipperX3');
+    if (!result) {
+      callback('');
+    } else {
+      callback(result.deviceId);
+    };
+  });
+```
+
+### BLEデバイスのスキャン
+今回は`bluejelly.js`を使用するため、HTMLファイルの`<HEAD>`内で下記2つのファイルを読み込み。
+`bluejelly.js`等のファイルはは[Github](https://github.com/electricbaka/bluejelly)からダウンロード。
+```html
+  <link rel="stylesheet" href="style.css">
+  <script type="text/javascript" src="bluejelly.js"></script>
+```
+`<BODY>`タグ内でBLEスキャン用のボタンを設置。
+```html
+<!--BLE scan-->
+<button id="scan">Scan</button>
+<div id="device_name"> </div>
+```
+`<SCRIPT>`タグ内に下記コードを追記。
+```js
+//--------------------------------------------------
+//bluejelly
+//--------------------------------------------------
+//BlueJellyのインスタンス生成
+const ble = new BlueJelly();
+
+//ロード時の処理
+window.onload = function () {
+  //UUIDの設定
+  ble.setUUID("UUID1", "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000");
+};
+
+//Scan後の処理
+ble.onScan = function (deviceName) {
+  document.getElementById('device_name').innerHTML = deviceName;
+};
+
+//ボタンが押された時のイベント登録
+document.getElementById('scan').addEventListener('click', function () {
+  ble.scan('UUID1');
+});
+```
+この状態でアプリケーションを起動し、`scan`ボタンを押すと`SlipperX3`が近くにあればそのデバイス名が表示されます。
+
 ## 参考ページ
+▼Electron
 [Electron公式]
 [最新版で学ぶElectron入門]
 [Electronデスクトップアプリ開発入門（1）]
 [npxコマンドとは？ 何ができるのか？]
 [electron-builderについて]
 [Electron（v.15.0.0 現在）の IPC 通信入門 - よりセキュアな方法への変遷]
+▼BLE接続
+[Electronでのデバイスアクセス]
+[ElectronでのWebBluetoothAPIにおける"select-bluetooth-device"イベントについて]
+[BlueJellyって何だよ！]
 
 [Electron公式]:https://www.electronjs.org/ja/docs/latest/
 [最新版で学ぶElectron入門]:https://ics.media/entry/7298/
@@ -282,3 +377,6 @@ contextBridge.exposeInMainWorld('myapi', {
 [npxコマンドとは？ 何ができるのか？]:https://zenn.dev/ryuu/articles/what-npxcommand
 [electron-builderについて]:https://qiita.com/saki-engineering/items/203892838e15b3dbd300
 [Electron（v.15.0.0 現在）の IPC 通信入門 - よりセキュアな方法への変遷]:https://qiita.com/hibara/items/c59fb6924610fc22a9db
+[Electronでのデバイスアクセス]:https://www.electronjs.org/ja/docs/latest/tutorial/devices
+[ElectronでのWebBluetoothAPIにおける"select-bluetooth-device"イベントについて]:https://www.electronjs.org/ja/docs/latest/api/web-contents#event-select-bluetooth-device
+[BlueJellyって何だよ！]:https://monomonotech.jp/kurage/webbluetooth/getting_started.html
